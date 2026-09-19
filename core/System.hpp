@@ -12,6 +12,7 @@ private:
     Queue<Patient*> patientsQueue;
     Hospital hospital;
     Stack<Patient*> attentionHistory;
+    bool hasPatientId(int id) const;
 
     void loadPatients(const std::string& filePath);
     void showQueue() const;

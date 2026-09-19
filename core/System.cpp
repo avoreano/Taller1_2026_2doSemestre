@@ -7,7 +7,23 @@
 using namespace std;
 
 System::System() {}
-System::~System() {}
+System::~System() {
+    Patient* patient = nullptr;
+
+    while (patientsQueue.dequeue(patient)) {
+        delete patient;
+    }
+}
+
+bool parseInteger(const string& text, int& value) {
+    try {
+        size_t position;
+        value = stoi(text, &position);
+        return position == text.size();
+    } catch (...) {
+        return false;
+    }
+}
 
 void System::loadPatients(const string& filePath) {
     ifstream file(filePath);
@@ -27,14 +43,50 @@ void System::loadPatients(const string& filePath) {
         getline(ss, ageStr, ';');
         getline(ss, condition, ';');
 
-        int idInt = stoi(id);
-        int age = stoi(ageStr);
+        int idInt;
+        int age;
+
+        string extra;
+
+        if (getline(ss, extra, ';') ||
+            id.empty() ||
+            name.empty() ||
+            ageStr.empty() ||
+            condition.empty() ||
+            !parseInteger(id, idInt) ||
+            !parseInteger(ageStr, age) ||
+            idInt < 1 ||
+            age < 0) {
+            cout << "Linea invalida: " << line << endl;
+            continue;
+        }
+        if (!hospital.isValidService(condition)) {
+            cout << "Servicio invalido para el paciente " << idInt << ": " << condition << endl;
+            continue;
+        }
+    
+        if (hasPatientId(idInt)) {
+            cout << "Paciente duplicado con ID: " << idInt << endl;
+            continue;
+        }
 
         Patient* newPatient = new Patient(idInt, name, age, condition);
         patientsQueue.enqueue(newPatient);
+
     }
     file.close();
 }
+
+bool System::hasPatientId(int id) const {
+    if (patientsQueue.exists([id](Patient* patient) {
+        return patient->getId() == id;
+    })) {
+        return true;
+    }
+
+    return hospital.hasPatientId(id);
+}
+
 void System::showQueue() const {
     cout << "=== PACIENTES EN ESPERA ===" << endl;
 
@@ -65,12 +117,11 @@ void System::treatPatients() {
     showQueue();
 
     int amount;
+    string input;
+
     cout << "Indique la cantidad de pacientes a atender: ";
 
-    if (!(cin >> amount)) {
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max());
-
+    if (!getline(cin >> ws, input) || !parseInteger(input, amount)) {
         cout << "Cantidad invalida." << endl;
         return;
     }
@@ -93,6 +144,9 @@ void System::treatPatients() {
 
             cout << "Paciente enviado a "
                  << patientToTreat->getService() << "." << endl;
+        } else {
+            delete patientToTreat;
+            cout << "Servicio invalido para el paciente. Paciente descartado." << endl;
         }
     }
 }
@@ -100,12 +154,12 @@ void System::treatPatients() {
 void System::seeDepartment() const {
     hospital.showServiceList();
 
-    int option;
-    cout << "Seleccionar opcion: ";
-    if (!(cin >> option)) {
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max());
+int option;
+    string input;
 
+    cout << "Seleccionar opcion: ";
+
+    if (!getline(cin >> ws, input) || !parseInteger(input, option)) {
         cout << "Opcion invalida." << endl;
         return;
     }
@@ -152,14 +206,18 @@ void System::execute() {
         cout << "4. Salir" << endl;
         cout << "Seleccionar opcion: ";
 
-    if (!(cin >> option)) {
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max());
+        string input;
 
-        cout << "Opcion invalida, intente nuevamente." << endl;
-        option = 0;
-        continue;
-    }
+        if (!getline(cin >> ws, input)) {
+            cout << "Entrada finalizada." << endl;
+            break;
+        }
+
+        if (!parseInteger(input, option)) {
+            cout << "Opcion invalida, intente nuevamente." << endl;
+            option = 0;
+            continue;
+        }
 
         switch (option) {
             case 1:
