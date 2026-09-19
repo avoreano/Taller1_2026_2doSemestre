@@ -49,7 +49,27 @@ void System::showQueue() const {
 }
 
 void System::treatPatients() {
-    cout << "treatPatients() por implementar." << endl;
+    cout << "=== Atendiendo paciente ===" << endl;
+
+    if (patientsQueue.isEmpty()) {
+        cout << "No hay pacientes para atender." << endl;
+        return;
+    }
+
+    Patient* patientToTreat = nullptr;
+
+    if (patientsQueue.dequeue(patientToTreat)) {
+        cout << "Paciente en atencion:" << endl;
+        patientToTreat->showInfo();
+        cout << "-------------------------" << endl;
+
+        delete patientToTreat;
+
+        cout << "Pacientes restantes en la cola:" << endl;
+        showQueue();
+    } else {
+        cout << "No se pudo atender al paciente." << endl;
+    }
 }
 
 void System::seeDepartment() const {
@@ -80,7 +100,6 @@ void System::execute() {
 
         switch (option) {
             case 1:
-                showQueue();
                 treatPatients();
                 break;
             case 2:
