@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 using namespace std;
 
@@ -65,7 +66,14 @@ void System::treatPatients() {
 
     int amount;
     cout << "Indique la cantidad de pacientes a atender: ";
-    cin >> amount;
+
+    if (!(cin >> amount)) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max());
+
+        cout << "Cantidad invalida." << endl;
+        return;
+    }
 
     if (amount < 1 || amount > patientsQueue.getSize()) {
         cout << "Cantidad invalida." << endl;
@@ -94,7 +102,13 @@ void System::seeDepartment() const {
 
     int option;
     cout << "Seleccionar opcion: ";
-    cin >> option;
+    if (!(cin >> option)) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max());
+
+        cout << "Opcion invalida." << endl;
+        return;
+    }
 
     if (option < 1 || option > hospital.getServicesCount()) {
         cout << "Departamento invalido." << endl;
@@ -106,8 +120,7 @@ void System::seeDepartment() const {
 }
 
 void System::showRecord() const {
-    cout << "=== HISTORIAL DE ULTIMAS ATENCIONES DEL HOSPITAL ==="
-         << endl;
+    cout << "=== HISTORIAL DE ULTIMAS ATENCIONES DEL HOSPITAL ===" << endl;
 
     if (attentionHistory.isEmpty()) {
         cout << "No hay atenciones registradas." << endl;
@@ -139,12 +152,14 @@ void System::execute() {
         cout << "4. Salir" << endl;
         cout << "Seleccionar opcion: ";
 
-        if (!(cin >> option)) {
-            cin.clear();
-            cout << "Opcion invalida, intente nuevamente." << endl;
-            option = 0;
-            continue;
-        }
+    if (!(cin >> option)) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max());
+
+        cout << "Opcion invalida, intente nuevamente." << endl;
+        option = 0;
+        continue;
+    }
 
         switch (option) {
             case 1:
