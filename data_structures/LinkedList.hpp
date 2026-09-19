@@ -78,6 +78,16 @@ public:
         }
         return false;
     }
+
+    template <typename Func>
+    void forEach(Func function) const {
+        Node<T>* current = head;
+        while (current != nullptr) {
+            function(current->data);
+            current = current->next;
+        }
+    }
+
 };
 
 #endif

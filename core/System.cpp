@@ -35,49 +35,97 @@ void System::loadPatients(const string& filePath) {
     file.close();
 }
 void System::showQueue() const {
-    cout << "=== Pacientes en la cola ===" << endl;
+    cout << "=== PACIENTES EN ESPERA ===" << endl;
+
     if (patientsQueue.isEmpty()) {
-        cout << "No hay pacientes en la cola." << endl;
+        cout << "No hay pacientes en espera." << endl;
         return;
     }
+
     Node<Patient*>* current = patientsQueue.getFront();
+    int number = 1;
+
     while (current != nullptr) {
-        current->data->showInfo();
-        cout << "-------------------------" << endl;
+        cout << number << ". "
+             << current->data->getId() << "- "
+             << current->data->getName() << endl;
+
         current = current->next;
+        number++;
     }
 }
 
 void System::treatPatients() {
-    cout << "=== Atendiendo paciente ===" << endl;
-
     if (patientsQueue.isEmpty()) {
         cout << "No hay pacientes para atender." << endl;
         return;
     }
 
-    Patient* patientToTreat = nullptr;
+    showQueue();
 
-    if (patientsQueue.dequeue(patientToTreat)) {
-        cout << "Paciente en atencion:" << endl;
+    int amount;
+    cout << "Indique la cantidad de pacientes a atender: ";
+    cin >> amount;
+
+    if (amount < 1 || amount > patientsQueue.getSize()) {
+        cout << "Cantidad invalida." << endl;
+        return;
+    }
+
+    cout << "=== ATENDIENDO PACIENTES ===" << endl;
+
+    for (int i = 0; i < amount; i++) {
+        Patient* patientToTreat = nullptr;
+        patientsQueue.dequeue(patientToTreat);
+
         patientToTreat->showInfo();
-        cout << "-------------------------" << endl;
 
-        delete patientToTreat;
+        if (hospital.sendPatient(patientToTreat)) {
+            attentionHistory.push(patientToTreat);
 
-        cout << "Pacientes restantes en la cola:" << endl;
-        showQueue();
-    } else {
-        cout << "No se pudo atender al paciente." << endl;
+            cout << "Paciente enviado a "
+                 << patientToTreat->getService() << "." << endl;
+        }
     }
 }
 
 void System::seeDepartment() const {
-    cout << "seeDepartment() por implementar." << endl;
+    hospital.showServiceList();
+
+    int option;
+    cout << "Seleccionar opcion: ";
+    cin >> option;
+
+    if (option < 1 || option > hospital.getServicesCount()) {
+        cout << "Departamento invalido." << endl;
+        return;
+    }
+
+    string serviceName = hospital.getServiceNameByIndex(option);
+    hospital.showServiceByName(serviceName);
 }
 
 void System::showRecord() const {
-    cout << "showRecord() por implementar." << endl;
+    cout << "=== HISTORIAL DE ULTIMAS ATENCIONES DEL HOSPITAL ==="
+         << endl;
+
+    if (attentionHistory.isEmpty()) {
+        cout << "No hay atenciones registradas." << endl;
+        return;
+    }
+
+    Node<Patient*>* current = attentionHistory.getTop();
+
+    while (current != nullptr) {
+        Patient* patient = current->data;
+
+        cout << "Nombre: " << patient->getName()
+             << " | Edad: " << patient->getAge()
+             << " | Departamento: " << patient->getService()
+             << endl;
+
+        current = current->next;
+    }
 }
 
 void System::execute() {
