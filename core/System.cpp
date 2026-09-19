@@ -28,10 +28,24 @@ void System::loadPatients(const string& filePath) {
 
         int idInt = stoi(id);
         int age = stoi(ageStr);
-        cout << "ID: " << idInt << " | " << name << " | " << age << " a;os | " << condition << endl;
+
+        Patient* newPatient = new Patient(idInt, name, age, condition);
+        patientsQueue.enqueue(newPatient);
     }
     file.close();
-    cout << "Archivo cargado correctamente: " << endl;
+}
+void System::showQueue() const {
+    cout << "=== Pacientes en la cola ===" << endl;
+    if (patientsQueue.isEmpty()) {
+        cout << "No hay pacientes en la cola." << endl;
+        return;
+    }
+    Node<Patient*>* current = patientsQueue.getFront();
+    while (current != nullptr) {
+        current->data->showInfo();
+        cout << "-------------------------" << endl;
+        current = current->next;
+    }
 }
 
 void System::treatPatients() {
@@ -66,6 +80,7 @@ void System::execute() {
 
         switch (option) {
             case 1:
+                showQueue();
                 treatPatients();
                 break;
             case 2:
