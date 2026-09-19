@@ -16,4 +16,4 @@ public:
     void ejecutar();
 };
 
-#endif // SISTEMA_HPP
+#endif
