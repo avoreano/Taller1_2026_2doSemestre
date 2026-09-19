@@ -1,7 +1,7 @@
-#include "core/Sistema.hpp"
+#include "core/System.hpp"
 
 int main() {
-    Sistema sistema;
-    sistema.ejecutar();
+    System system;
+    system.execute();
     return 0;
 }
