@@ -195,28 +195,45 @@ void System::treatPatients() {
 
         patientToTreat->showInfo();
 
-        if (hospital.sendPatient(patientToTreat)) {
-            attentionHistory.push(patientToTreat);
+        // el arbol de decision decide el servicio y deja la ruta que siguio
+        string route;
+        string serviceName = decisionTree.evaluate(patientToTreat, route);
 
-            cout << "Paciente enviado a "
-                 << patientToTreat->getService() << "." << endl;
-        } else {
+        if (serviceName.empty()) {
+            cout << "No se pudo clasificar al paciente. Paciente descartado." << endl << endl;
             delete patientToTreat;
-            cout << "Servicio invalido para el paciente. Paciente descartado." << endl;
+            continue;
+        }
+
+        patientToTreat->setService(serviceName);
+        cout << "Ruta: " << route << endl;
+        cout << "Servicio asignado: " << serviceName << endl;
+
+        if (hospital.sendPatient(patientToTreat)) {
+            cout << "Paciente insertado en el AVL de " << serviceName << "." << endl << endl;
+        } else {
+            cout << "No se pudo insertar al paciente en el AVL. Paciente descartado." << endl << endl;
+            delete patientToTreat;
         }
     }
 }
 
 void System::seeDepartment() const {
+    hospital.showAllServices();
+    cout << endl;
     hospital.showServiceList();
 
     int option;
     string input;
 
-    cout << "Seleccionar opcion: ";
+    cout << "Seleccione un departamento para ver su AVL (0 para volver): ";
 
     if (!getline(cin >> ws, input) || !parseInteger(input, option)) {
         cout << "Opcion invalida." << endl;
+        return;
+    }
+
+    if (option == 0) {
         return;
     }
 
@@ -225,29 +242,95 @@ void System::seeDepartment() const {
         return;
     }
 
+    cout << endl;
     string serviceName = hospital.getServiceNameByIndex(option);
     hospital.showServiceByName(serviceName);
 }
 
-void System::showRecord() const {
-    cout << "=== HISTORIAL DE ULTIMAS ATENCIONES DEL HOSPITAL ===" << endl;
+namespace {
+    // muestra los datos de un paciente ya clasificado
+    void showPatientDetails(const Patient* patient, const string& serviceName) {
+        cout << "-------" << endl;
+        cout << "ID: " << patient->getId() << endl;
+        cout << "Nombre: " << patient->getName() << endl;
+        cout << "Edad: " << patient->getAge() << endl;
+        cout << "Departamento: " << serviceName << endl;
+        cout << "T: " << patient->getTemperature() << " C"
+             << " | P: " << patient->getBloodPressure() << " mmHg"
+             << " | D: " << patient->getPain()
+             << " | TD: " << patient->getPainType()
+             << " | Tr: " << (patient->hasTrauma() ? "Si" : "No")
+             << " | SN: " << (patient->hasNeuroSymptoms() ? "Si" : "No")
+             << " | RC: " << (patient->getRequiresSurgery() ? "Si" : "No")
+             << " | DH: ";
+        if (patient->getHospitalDays() == 0) {
+            cout << "Ninguno" << endl;
+        } else {
+            cout << patient->getHospitalDays() << endl;
+        }
+        cout << "-------" << endl;
+    }
+}
 
-    if (attentionHistory.isEmpty()) {
-        cout << "No hay atenciones registradas." << endl;
+void System::searchPatient() const {
+    cout << "=== BUSCAR PACIENTE ===" << endl;
+    cout << "Indique el ID o Nombre del paciente: ";
+
+    string input;
+    if (!getline(cin >> ws, input)) {
+        cout << "Entrada invalida." << endl;
         return;
     }
 
-    Node<Patient*>* current = attentionHistory.getTop();
+    // se quitan los espacios del final
+    while (!input.empty() && isspace(static_cast<unsigned char>(input[input.size() - 1]))) {
+        input.erase(input.size() - 1);
+    }
 
-    while (current != nullptr) {
-        Patient* patient = current->data;
+    if (input.empty()) {
+        cout << "Entrada invalida." << endl;
+        return;
+    }
 
-        cout << "Nombre: " << patient->getName()
-             << " | Edad: " << patient->getAge()
-             << " | Departamento: " << patient->getService()
-             << endl;
+    cout << "Buscando en AVL..." << endl;
 
-        current = current->next;
+    Patient* found = nullptr;
+    string serviceName;
+    string route;
+    int id;
+    bool searchById = parseInteger(input, id);
+
+    // un numero se busca por id
+    if (searchById) {
+        found = hospital.searchPatientById(id, serviceName, route);
+    } else {
+        found = hospital.searchPatientByName(input, serviceName);
+    }
+
+    if (found == nullptr) {
+        cout << "Paciente no encontrado en los AVL." << endl;
+
+        // si todavia no fue atendido, esta en la cola y no en un avl
+        bool waiting = patientsQueue.exists([&](Patient* patient) {
+            if (searchById) {
+                return patient->getId() == id;
+            }
+            return patient->getName() == input;
+        });
+        if (waiting) {
+            cout << "El paciente esta en la cola de espera (aun no ha sido atendido)." << endl;
+        }
+        return;
+    }
+
+    cout << "Paciente encontrado:" << endl;
+    showPatientDetails(found, serviceName);
+
+    if (searchById) {
+        cout << "Ruta de busqueda:" << endl;
+        cout << route << endl;
+    } else {
+        cout << "Busqueda por nombre: se recorrieron los AVL de los servicios en inorden." << endl;
     }
 }
 
@@ -257,8 +340,8 @@ void System::execute() {
     while (option != 4) {
         cout << "=== INTEGRA MEDICA 2.0 ===" << endl;
         cout << "1. Atender pacientes" << endl;
-        cout << "2. Ver departamento" << endl;
-        cout << "3. Revisar historial de atencion" << endl;
+        cout << "2. Ver departamentos" << endl;
+        cout << "3. Buscar paciente" << endl;
         cout << "4. Salir" << endl;
         cout << "Seleccionar opcion: ";
 
@@ -283,7 +366,7 @@ void System::execute() {
                 seeDepartment();
                 break;
             case 3:
-                showRecord();
+                searchPatient();
                 break;
             case 4:
                 cout << "Finalizando el sistema..." << endl;

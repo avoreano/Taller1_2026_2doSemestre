@@ -4,21 +4,21 @@
 #include "../classes/Patient.hpp"
 #include "../data_structures/Queue.hpp"
 #include "../classes/Hospital.hpp"
-#include "../data_structures/Stack.hpp"
+#include "../classes/DecisionTree.hpp"
 
 class System {
 private:
 
     Queue<Patient*> patientsQueue;
     Hospital hospital;
-    Stack<Patient*> attentionHistory;
+    DecisionTree decisionTree;
     bool hasPatientId(int id) const;
 
     void loadPatients(const std::string& filePath);
     void showQueue() const;
     void treatPatients();
     void seeDepartment() const;
-    void showRecord() const;
+    void searchPatient() const;
 
 public:
     System();

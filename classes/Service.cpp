@@ -1,15 +1,26 @@
 #include "Service.hpp"
 #include <iostream>
+#include <cctype>
 
 using namespace std;
 
-Service::Service(const string& nombre) {
-    this->serviceName = nombre;
+namespace {
+    string toLower(string text) {
+        for (size_t i = 0; i < text.size(); i++) {
+            text[i] = static_cast<char>(tolower(static_cast<unsigned char>(text[i])));
+        }
+        return text;
+    }
+}
+
+Service::Service(const string& name) {
+    this->serviceName = name;
 }
 
 Service::~Service() {
-    patientsList.forEach([](Patient* patient) {
-        delete patient;
+    // el servicio es el dueño de los pacientes: se borran antes de que el avl libere sus nodos
+    patientsTree.inOrder([](AVLNode<Patient*>* node) {
+        delete node->data;
     });
 }
 
@@ -17,32 +28,93 @@ string Service::getName() const {
     return serviceName;
 }
 
-void Service::receivePatient(Patient* patient) {
-    patientsList.pushBack(patient);
+bool Service::receivePatient(Patient* patient) {
+    return patientsTree.insert(patient->getId(), patient);
 }
 
 void Service::showStatus() const {
-    cout << "=== ESTADO " << serviceName << " ===" << endl;
-    cout << "Pacientes en el departamento: "
-         << patientsList.getSize() << endl;
+    cout << serviceName << endl;
 
-    if (patientsList.isEmpty()) {
-        cout << "(sin pacientes en este servicio)" << endl;
+    if (patientsTree.isEmpty()) {
+        cout << "Sin pacientes" << endl;
         return;
     }
 
-    patientsList.forEach([](Patient* patient) {
-        cout << "- " << patient->getName()
-             << " (" << patient->getAge() << ")" << endl;
+    cout << "Pacientes: ";
+    bool first = true;
+    patientsTree.inOrder([&first](AVLNode<Patient*>* node) {
+        if (!first) {
+            cout << ", ";
+        }
+        cout << node->data->getName() << " (" << node->key << ")";
+        first = false;
     });
+    cout << endl;
+}
+
+void Service::showDetails() const {
+    cout << "=== AVL DE " << serviceName << " ===" << endl;
+
+    if (patientsTree.isEmpty()) {
+        cout << "Sin pacientes" << endl;
+        return;
+    }
+
+    cout << "Pacientes: " << patientsTree.getSize() << endl;
+    cout << "Altura del arbol: " << patientsTree.getHeight() << endl;
+    cout << "Factor de balance de la raiz: "
+         << patientsTree.getBalanceFactor(patientsTree.getRoot()) << endl;
+
+    // cada nodo se muestra como: id nombre [factor de balance]
+    auto showNode = [this](AVLNode<Patient*>* node) {
+        cout << node->key << " " << node->data->getName()
+             << " [fb=" << patientsTree.getBalanceFactor(node) << "]  ";
+    };
+
+    cout << "Inorden:   ";
+    patientsTree.inOrder(showNode);
+    cout << endl;
+
+    cout << "Preorden:  ";
+    patientsTree.preOrder(showNode);
+    cout << endl;
+
+    cout << "Postorden: ";
+    patientsTree.postOrder(showNode);
+    cout << endl;
 }
 
 int Service::getPatientCount() const {
-    return patientsList.getSize();
+    return patientsTree.getSize();
 }
 
 bool Service::hasPatientId(int id) const {
-    return patientsList.exists([id](Patient* patient) {
-        return patient->getId() == id;
+    return patientsTree.search(id) != nullptr;
+}
+
+Patient* Service::searchPatientById(int id, string& route) const {
+    route = "";
+    AVLNode<Patient*>* node = patientsTree.search(id, [&route](int key) {
+        if (!route.empty()) {
+            route += " -> ";
+        }
+        route += to_string(key);
     });
+
+    if (node == nullptr) {
+        return nullptr;
+    }
+    return node->data;
+}
+
+Patient* Service::searchPatientByName(const string& name) const {
+    string objective = toLower(name);
+    AVLNode<Patient*>* node = patientsTree.findIf([&objective](Patient* patient) {
+        return toLower(patient->getName()) == objective;
+    });
+
+    if (node == nullptr) {
+        return nullptr;
+    }
+    return node->data;
 }

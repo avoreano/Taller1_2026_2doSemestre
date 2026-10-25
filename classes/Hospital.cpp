@@ -41,14 +41,40 @@ bool Hospital::sendPatient(Patient* patient) {
     if (service == nullptr) {
         return false;
     }
-    service->receivePatient(patient);
-    return true;
+    return service->receivePatient(patient);
 }
 
 bool Hospital::hasPatientId(int id) const {
     return servicesList.exists([id](Service* service) {
         return service->hasPatientId(id);
     });
+}
+
+Patient* Hospital::searchPatientById(int id, string& serviceName, string& route) const {
+    Node<Service*>* actual = servicesList.getHead();
+    while (actual != nullptr) {
+        Patient* found = actual->data->searchPatientById(id, route);
+        if (found != nullptr) {
+            serviceName = actual->data->getName();
+            return found;
+        }
+        actual = actual->next;
+    }
+    route = "";
+    return nullptr;
+}
+
+Patient* Hospital::searchPatientByName(const string& name, string& serviceName) const {
+    Node<Service*>* actual = servicesList.getHead();
+    while (actual != nullptr) {
+        Patient* found = actual->data->searchPatientByName(name);
+        if (found != nullptr) {
+            serviceName = actual->data->getName();
+            return found;
+        }
+        actual = actual->next;
+    }
+    return nullptr;
 }
 
 void Hospital::showServiceList() const {
@@ -83,12 +109,12 @@ void Hospital::showServiceByName(const std::string& name) const {
         std::cout << "Service not found.\n";
         return;
     }
-    service->showStatus();
+    service->showDetails();
 }
 
 void Hospital::showAllServices() const {
+    cout << "=== ESTADO DE LOS DEPARTAMENTOS ===" << endl;
     servicesList.forEach([](Service* service) {
         service->showStatus();
-        std::cout << "\n";
     });
 }
