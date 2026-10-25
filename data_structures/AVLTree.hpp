@@ -17,12 +17,70 @@ private:
     }
 
     int maxOf(int a, int b) const {
-        if(a>b) {return a;}
-        else {return b;}
+        return (a > b) ? a : b;
     }
 
     void updateHeight(AVLNode<T>* node) {
         node->height = 1 + maxOf(heightOf(node->left), heightOf(node->right));
+    }
+
+    int balanceOf(AVLNode<T>* node) const {
+        if (node == nullptr) {
+            return 0;
+        }
+        return heightOf(node->left) - heightOf(node->right);
+    }
+
+    // rotacion hacia la derecha en caso izq-izq
+    AVLNode<T>* rotateRight(AVLNode<T>* y) {
+        AVLNode<T>* x = y->left;
+        AVLNode<T>* B = x->right;
+
+        x->right = y;
+        y->left = B;
+
+        updateHeight(y);
+        updateHeight(x);
+        return x;
+    }
+
+    // rotacion hacia la izquierda en caso der-der
+    AVLNode<T>* rotateLeft(AVLNode<T>* x) {
+        AVLNode<T>* y = x->right;
+        AVLNode<T>* B = y->left;
+
+        y->left = x;
+        x->right = B;
+
+        updateHeight(x);
+        updateHeight(y);
+        return y;
+    }
+
+    // revisa el desbalance y aplica cual sea necesario
+    AVLNode<T>* rebalance(AVLNode<T>* node) {
+        updateHeight(node);
+        int balance = balanceOf(node);
+
+        if (balance > 1) {
+            if (balanceOf(node->left) < 0) {
+                // izq-der: rotacion izquierda
+                node->left = rotateLeft(node->left);
+            }
+            // izq-izq: rotacion derecha
+            return rotateRight(node);
+        }
+
+        if (balance < -1) {
+            if (balanceOf(node->right) > 0) {
+                // derecha-izquierda: rotacion derecha
+                node->right = rotateRight(node->right);
+            }
+            // der-der: rotacion izquierda
+            return rotateLeft(node);
+        }
+
+        return node;
     }
 
     AVLNode<T>* insertNode(AVLNode<T>* node, int key, const T& value, bool& inserted) {
@@ -30,19 +88,17 @@ private:
             inserted = true;
             return new AVLNode<T>(key, value);
         }
-        // se levanta una flag para saber si hay duplicados
 
         if (key < node->key) {
             node->left = insertNode(node->left, key, value, inserted);
         } else if (key > node->key) {
             node->right = insertNode(node->right, key, value, inserted);
         } else {
-            inserted = false; // aca no se inserta el duplicado
+            inserted = false;
             return node;
         }
 
-        updateHeight(node);
-        return node;
+        return rebalance(node);
     }
 
     void destroy(AVLNode<T>* node) {
@@ -120,6 +176,10 @@ public:
 
     int getHeight() const {
         return heightOf(root);
+    }
+
+    int getBalanceFactor(AVLNode<T>* node) const {
+        return balanceOf(node);
     }
 
     AVLNode<T>* getRoot() const {
